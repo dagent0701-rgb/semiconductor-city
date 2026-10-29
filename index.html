@@ -391,7 +391,7 @@ Object.keys(POS).forEach(id=>{const p=POS[id],n=id==='core'?3:2;for(let i=0;i<n;
   P.ring=3.15+Math.random()*0.65;P.ang=Math.random()*Math.PI*2;P.dir=Math.random()>.5?1:-1;P.spd=1.0+Math.random()*0.9;
   P.g.position.set(p.x+Math.cos(P.ang)*P.ring,TOP,p.z+Math.sin(P.ang)*P.ring);
   people.push(P);}});
-bridges.forEach(b=>{const P=makePerson();P.g.position.set(b.dx*b.inner,TOP,b.dz*b.inner);P.mode='bridge';P.b=b;P.t=Math.random();P.dir=Math.random()>.5?1:-1;P.spd=0.1+Math.random()*0.05;people.push(P);});
+// (bridge commuters removed — gold data particles keep the bridges alive)
 
 /* ---- data particles ---- */
 const particles=[];const pGeo=new THREE.SphereGeometry(0.12,8,8);
