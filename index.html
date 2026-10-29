@@ -128,7 +128,7 @@ const canvas=document.getElementById('scene');
 const renderer=new THREE.WebGLRenderer({canvas,antialias:true,alpha:true});
 renderer.setPixelRatio(Math.min(devicePixelRatio,2));
 const scene=new THREE.Scene();
-scene.fog=new THREE.Fog(0x227f88,170,600);
+scene.fog=new THREE.Fog(0x2a74ac,170,600);
 const camera=new THREE.PerspectiveCamera(32,1,0.5,1400);  // perspective diorama: low angle so sky, mountains & clouds show
 const target=new THREE.Vector3(0,2.2,0);
 let az=-0.6, el=0.235, camRadius=78;
@@ -284,7 +284,7 @@ const LANDMARKS={d1:lm_d1,d2:lm_d2,d3:lm_d3,d4:lm_d4,d5:lm_d5,d6:lm_d6};
 /* ---- sky dome (gradient) ---- */
 const skyTex=texFrom(512,512,(x,w,h)=>{
   const g=x.createLinearGradient(0,0,0,h);
-  g.addColorStop(0,'#06202b');g.addColorStop(.40,'#0e4f59');g.addColorStop(.56,'#1b818d');g.addColorStop(.66,'#36a0a8');g.addColorStop(.74,'#2a8f98');g.addColorStop(.86,'#1d6b74');g.addColorStop(1,'#124851');
+  g.addColorStop(0,'#06182b');g.addColorStop(.40,'#0d3d66');g.addColorStop(.56,'#1b6aae');g.addColorStop(.66,'#3f93d8');g.addColorStop(.74,'#2f80c6');g.addColorStop(.86,'#215e9e');g.addColorStop(1,'#163f6e');
   x.fillStyle=g;x.fillRect(0,0,w,h);
   // soft painted clouds near the horizon band
   for(let i=0;i<16;i++){
@@ -299,9 +299,9 @@ const sky=new THREE.Mesh(new THREE.SphereGeometry(680,40,24),new THREE.MeshBasic
 scene.add(sky);
 
 /* ---- sea (bright water, reaching the horizon) ---- */
-const sea=new THREE.Mesh(new THREE.CircleGeometry(640,96),new THREE.MeshStandardMaterial({color:0x10717c,roughness:.28,metalness:.42,emissive:0x0a4a52,emissiveIntensity:.1}));
+const sea=new THREE.Mesh(new THREE.CircleGeometry(640,96),new THREE.MeshStandardMaterial({color:0x1560a6,roughness:.26,metalness:.46,emissive:0x0a2f5c,emissiveIntensity:.12}));
 sea.rotation.x=-Math.PI/2;sea.position.y=-0.3;scene.add(sea);
-const seaInner=new THREE.Mesh(new THREE.CircleGeometry(26,64),new THREE.MeshStandardMaterial({color:0x1b8a93,roughness:.25,metalness:.45,transparent:true,opacity:.55}));
+const seaInner=new THREE.Mesh(new THREE.CircleGeometry(26,64),new THREE.MeshStandardMaterial({color:0x2a82d2,roughness:.22,metalness:.5,transparent:true,opacity:.5}));
 seaInner.rotation.x=-Math.PI/2;seaInner.position.y=-0.22;scene.add(seaInner);
 
 /* ---- real 3D mountain ranges ringing the city (beyond camera orbit, so never block) ---- */
