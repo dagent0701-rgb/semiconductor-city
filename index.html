@@ -36,6 +36,9 @@ h1 .chip{color:var(--gold)}
 .map-tag{position:absolute;top:14px;left:14px;z-index:3;font-family:var(--font-ui);font-size:11px;letter-spacing:.22em;text-transform:uppercase;color:#cdecE7;background:rgba(5,18,23,.62);border:1px solid rgba(90,214,201,.2);border-radius:8px;padding:5px 11px;pointer-events:none;backdrop-filter:blur(5px);-webkit-backdrop-filter:blur(5px)}
 .map-hint{position:absolute;bottom:14px;left:50%;transform:translateX(-50%);z-index:3;font-size:12.5px;color:#dff3f0;letter-spacing:.03em;background:rgba(5,18,23,.64);border:1px solid rgba(90,214,201,.22);border-radius:999px;padding:7px 16px;pointer-events:none;backdrop-filter:blur(5px);-webkit-backdrop-filter:blur(5px);white-space:nowrap}
 .map-hint b{color:var(--teal);font-weight:700}
+.zoom-ctrl{position:absolute;right:14px;bottom:14px;z-index:3;display:flex;flex-direction:column;gap:8px}
+.zoom-ctrl button{width:42px;height:42px;border-radius:12px;border:1px solid rgba(90,214,201,.3);background:rgba(5,18,23,.68);color:#dff3f0;font-size:23px;font-weight:600;line-height:1;cursor:pointer;display:flex;align-items:center;justify-content:center;font-family:var(--font-ui);backdrop-filter:blur(5px);-webkit-backdrop-filter:blur(5px);transition:border-color .15s,background .15s;-webkit-tap-highlight-color:transparent;touch-action:manipulation}
+.zoom-ctrl button:hover,.zoom-ctrl button:active{border-color:var(--gold);background:rgba(18,48,54,.9)}
 .loading{position:absolute;inset:0;display:grid;place-items:center;color:var(--muted);font-family:var(--font-ui);letter-spacing:.2em;font-size:12px;z-index:4}
 /* floating island labels */
 .lbl{position:absolute;left:0;top:0;display:flex;align-items:baseline;gap:7px;white-space:nowrap;background:rgba(8,28,33,.86);border:1px solid var(--line-2);border-radius:999px;padding:6px 14px;pointer-events:auto;cursor:pointer;transition:border-color .18s,background .18s;will-change:transform;box-shadow:0 6px 20px rgba(0,0,0,.35)}
@@ -88,8 +91,12 @@ footer{margin-top:30px;text-align:center;font-family:var(--font-ui);font-size:11
       <div class="map-tag">City Map / 城市地圖</div>
       <canvas id="scene"></canvas>
       <div id="labels"></div>
+      <div class="zoom-ctrl">
+        <button id="zin" type="button" aria-label="放大">+</button>
+        <button id="zout" type="button" aria-label="縮小">&minus;</button>
+      </div>
       <div class="loading" id="loading">建構城市中…</div>
-      <div class="map-hint">拖曳旋轉 · 滾輪縮放 · <b>點島看課程</b></div>
+      <div class="map-hint">拖曳旋轉 · 雙指/滾輪/按鈕縮放 · <b>點島看課程</b></div>
     </div>
     <aside class="panel" id="panel" aria-live="polite"></aside>
   </div>
@@ -423,13 +430,35 @@ function setPointer(e){const r=canvas.getBoundingClientRect();pointer.x=((e.clie
 function pick(){ray.setFromCamera(pointer,camera);const hit=ray.intersectObjects(tileMeshes,false);return hit[0]?hit[0].object.userData.id:null;}
 function refreshHighlight(){tileMeshes.forEach(t=>{const id=t.userData.id,on=id===activeId,hov=id===hovered,core=id==='core';
   t.material.emissiveIntensity=on?.4:hov?.26:(core?.08:.06);t.material.emissive.setHex(on||hov?(core?0x2f8f55:COLteal):(core?0x1c5a33:0x0a3a40));});}
+const clampR=r=>Math.max(26,Math.min(130,r));
 let dragging=false,moved=0,lastX=0,lastY=0,downT=0;
-canvas.addEventListener('pointerdown',e=>{dragging=true;moved=0;lastX=e.clientX;lastY=e.clientY;downT=Date.now();canvas.classList.add('grabbing');canvas.setPointerCapture(e.pointerId);});
-canvas.addEventListener('pointermove',e=>{if(dragging){const dx=e.clientX-lastX,dy=e.clientY-lastY;moved+=Math.abs(dx)+Math.abs(dy);az-=dx*0.006;el=Math.max(0.14,Math.min(1.05,el-dy*0.004));lastX=e.clientX;lastY=e.clientY;placeCamera();}else{setPointer(e);const id=pick();if(id!==hovered){hovered=id;canvas.classList.toggle('hot',!!id);refreshHighlight();}}});
-function endDrag(e){dragging=false;canvas.classList.remove('grabbing');if(moved<6&&Date.now()-downT<400){setPointer(e);const id=pick();if(id)go(id);}}
-canvas.addEventListener('pointerup',endDrag);
-canvas.addEventListener('pointercancel',()=>{dragging=false;canvas.classList.remove('grabbing');});
-canvas.addEventListener('wheel',e=>{e.preventDefault();camRadius=Math.max(26,Math.min(130,camRadius+Math.sign(e.deltaY)*camRadius*0.1));placeCamera();},{passive:false});
+const ptrs=new Map();let pinching=false,pinchStartDist=0,pinchStartRadius=0,gesturePinched=false;
+canvas.addEventListener('pointerdown',e=>{
+  canvas.setPointerCapture(e.pointerId);
+  ptrs.set(e.pointerId,{x:e.clientX,y:e.clientY});
+  if(ptrs.size>=2){pinching=true;gesturePinched=true;dragging=false;canvas.classList.remove('grabbing');
+    const p=[...ptrs.values()];pinchStartDist=Math.hypot(p[0].x-p[1].x,p[0].y-p[1].y)||1;pinchStartRadius=camRadius;}
+  else{dragging=true;moved=0;gesturePinched=false;lastX=e.clientX;lastY=e.clientY;downT=Date.now();canvas.classList.add('grabbing');}
+});
+canvas.addEventListener('pointermove',e=>{
+  if(ptrs.has(e.pointerId)) ptrs.set(e.pointerId,{x:e.clientX,y:e.clientY});
+  if(pinching&&ptrs.size>=2){const p=[...ptrs.values()];const d=Math.hypot(p[0].x-p[1].x,p[0].y-p[1].y);
+    if(d>0){camRadius=clampR(pinchStartRadius*(pinchStartDist/d));placeCamera();}return;}
+  if(dragging){const dx=e.clientX-lastX,dy=e.clientY-lastY;moved+=Math.abs(dx)+Math.abs(dy);az-=dx*0.006;el=Math.max(0.14,Math.min(1.05,el-dy*0.004));lastX=e.clientX;lastY=e.clientY;placeCamera();}
+  else{setPointer(e);const id=pick();if(id!==hovered){hovered=id;canvas.classList.toggle('hot',!!id);refreshHighlight();}}
+});
+function upPtr(e){
+  ptrs.delete(e.pointerId);
+  if(ptrs.size<2) pinching=false;
+  if(ptrs.size===1){const p=[...ptrs.values()][0];lastX=p.x;lastY=p.y;dragging=true;moved=999;}
+  else if(ptrs.size===0){dragging=false;canvas.classList.remove('grabbing');
+    if(!gesturePinched&&moved<6&&Date.now()-downT<400){setPointer(e);const id=pick();if(id)go(id);}}
+}
+canvas.addEventListener('pointerup',upPtr);
+canvas.addEventListener('pointercancel',upPtr);
+canvas.addEventListener('wheel',e=>{e.preventDefault();camRadius=clampR(camRadius+Math.sign(e.deltaY)*camRadius*0.1);placeCamera();},{passive:false});
+document.getElementById('zin').addEventListener('click',()=>{camRadius=clampR(camRadius*0.82);placeCamera();});
+document.getElementById('zout').addEventListener('click',()=>{camRadius=clampR(camRadius*1.22);placeCamera();});
 
 /* ============ animation ============ */
 let t0=performance.now();
