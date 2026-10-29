@@ -388,7 +388,7 @@ function makePerson(){
 function tilePoint(p){const a=Math.random()*Math.PI*2,r=TILE_R*(0.45+Math.random()*0.2);return {x:p.x+Math.cos(a)*r,z:p.z+Math.sin(a)*r};}
 Object.keys(POS).forEach(id=>{const p=POS[id],n=id==='core'?3:2;for(let i=0;i<n;i++){
   const P=makePerson();P.mode='tile';P.p=p;
-  P.ring=3.15+Math.random()*0.65;P.ang=Math.random()*Math.PI*2;P.dir=Math.random()>.5?1:-1;P.spd=0.5+Math.random()*0.5;
+  P.ring=3.15+Math.random()*0.65;P.ang=Math.random()*Math.PI*2;P.dir=Math.random()>.5?1:-1;P.spd=1.0+Math.random()*0.9;
   P.g.position.set(p.x+Math.cos(P.ang)*P.ring,TOP,p.z+Math.sin(P.ang)*P.ring);
   people.push(P);}});
 bridges.forEach(b=>{const P=makePerson();P.g.position.set(b.dx*b.inner,TOP,b.dz*b.inner);P.mode='bridge';P.b=b;P.t=Math.random();P.dir=Math.random()>.5?1:-1;P.spd=0.1+Math.random()*0.05;people.push(P);});
@@ -478,10 +478,16 @@ function frame(now){
         const nx=q.p.x+Math.cos(q.ang)*rr,nz=q.p.z+Math.sin(q.ang)*rr;
         vx=nx-q.g.position.x;vz=nz-q.g.position.z;q.g.position.x=nx;q.g.position.z=nz;}
       else{q.t+=q.dir*q.spd*dt;if(q.t>1){q.t=1;q.dir=-1;}if(q.t<0){q.t=0;q.dir=1;}const r=q.b.inner+(q.b.outer-q.b.inner)*q.t;q.g.position.x=q.b.dx*r;q.g.position.z=q.b.dz*r;vx=q.b.dx*q.dir;vz=q.b.dz*q.dir;}
-      if(vx||vz)q.g.rotation.y=Math.atan2(vx,vz);
-      const sw=Math.sin(now/1000*8+q.ph)*0.5;
+      // stride driven by distance actually travelled → no marching in place
+      const mdx=q.g.position.x-(q.px!==undefined?q.px:q.g.position.x);
+      const mdz=q.g.position.z-(q.pz!==undefined?q.pz:q.g.position.z);
+      q.px=q.g.position.x;q.pz=q.g.position.z;
+      const step=Math.hypot(mdx,mdz);
+      q.stride=(q.stride||0)+step*8;
+      if(step>1e-4)q.g.rotation.y=Math.atan2(mdx,mdz);
+      const sw=Math.sin(q.stride)*0.5;
       q.legL.rotation.x=sw;q.legR.rotation.x=-sw;q.armL.rotation.x=-sw*0.8;q.armR.rotation.x=sw*0.8;
-      q.g.position.y=TOP+Math.abs(Math.sin(now/1000*8+q.ph))*0.04;
+      q.g.position.y=TOP+Math.abs(Math.sin(q.stride))*0.03;
     }
     for(const p of particles){p.t-=0.18*dt;if(p.t<0)p.t=1;const r=p.b.inner+(p.b.outer-p.b.inner)*p.t;p.m.position.set(p.b.dx*r,TOP+0.55,p.b.dz*r);}
     seaInner.material.opacity=0.5+Math.sin(now/1400)*0.12;
