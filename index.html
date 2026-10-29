@@ -1,0 +1,490 @@
+<title>半導體城市</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Chakra+Petch:wght@400;500;600;700&family=Noto+Sans+TC:wght@400;500;700;900&display=swap">
+<style>
+/* Layout: dark "glowing tech-city" world — islands floating in bright teal water (Three.js). Central TSMC R&D Center + six themed-landmark districts; floating course-name labels beside each island; scene left, info panel right (stacks on phone). Deliberate single dark theme. */
+:root{
+  color-scheme: dark;
+  --bg:#07161a; --bg2:#0a2026;
+  --panel:#0c2429; --panel2:#0f2d33;
+  --line:rgba(90,214,201,.16); --line-2:rgba(90,214,201,.32);
+  --teal:#35e0cf; --teal-dp:#16998f;
+  --gold:#f4c45c; --gold-dp:#d79a2e;
+  --ink:#eaf7f4; --muted:#8fb3af; --muted-2:#5e8480;
+  --font-ui:'Chakra Petch','Noto Sans TC',system-ui,sans-serif;
+  --font-cjk:'Noto Sans TC','Chakra Petch',system-ui,sans-serif;
+}
+*{box-sizing:border-box}
+html,body{margin:0}
+body{font-family:var(--font-cjk);color:var(--ink);min-height:100%;line-height:1.6;-webkit-font-smoothing:antialiased;
+  background:radial-gradient(1200px 700px at 72% -10%, rgba(53,224,207,.10), transparent 60%),radial-gradient(900px 600px at 10% 110%, rgba(244,196,92,.07), transparent 55%),linear-gradient(180deg, var(--bg2), var(--bg) 60%);background-attachment:fixed}
+.wrap{position:relative;z-index:1;max-width:1180px;margin:0 auto;padding-left:max(18px,env(safe-area-inset-left,0px));padding-right:max(18px,env(safe-area-inset-right,0px));padding-block:30px 46px}
+header{margin-bottom:22px}
+.eyebrow{font-family:var(--font-ui);font-weight:600;font-size:12.5px;letter-spacing:.34em;text-transform:uppercase;color:var(--teal);display:flex;align-items:center;gap:12px;margin-bottom:12px}
+.eyebrow::before{content:"";width:34px;height:1px;background:linear-gradient(90deg,var(--teal),transparent)}
+h1{font-family:var(--font-cjk);font-weight:900;font-size:clamp(34px,6vw,58px);line-height:1.02;margin:0;letter-spacing:.01em;text-wrap:balance}
+h1 .chip{color:var(--gold)}
+.lede{margin:14px 0 0;max-width:60ch;color:var(--muted);font-size:clamp(14.5px,1.7vw,16.5px)}
+.stage{display:grid;grid-template-columns:minmax(0,1fr) 350px;gap:22px;align-items:start;margin-top:22px}
+.map-card{position:relative;border:1px solid var(--line);border-radius:20px;overflow:hidden;background:linear-gradient(180deg, rgba(10,45,52,.7), rgba(6,24,30,.7))}
+#scene{width:100%;height:clamp(460px,76vh,820px);display:block;touch-action:none;cursor:grab}
+#scene.grabbing{cursor:grabbing}
+#scene.hot{cursor:pointer}
+#labels{position:absolute;inset:0;z-index:2;pointer-events:none;overflow:hidden}
+.map-tag{position:absolute;top:14px;left:14px;z-index:3;font-family:var(--font-ui);font-size:11px;letter-spacing:.22em;text-transform:uppercase;color:#cdecE7;background:rgba(5,18,23,.62);border:1px solid rgba(90,214,201,.2);border-radius:8px;padding:5px 11px;pointer-events:none;backdrop-filter:blur(5px);-webkit-backdrop-filter:blur(5px)}
+.map-hint{position:absolute;bottom:14px;left:50%;transform:translateX(-50%);z-index:3;font-size:12.5px;color:#dff3f0;letter-spacing:.03em;background:rgba(5,18,23,.64);border:1px solid rgba(90,214,201,.22);border-radius:999px;padding:7px 16px;pointer-events:none;backdrop-filter:blur(5px);-webkit-backdrop-filter:blur(5px);white-space:nowrap}
+.map-hint b{color:var(--teal);font-weight:700}
+.loading{position:absolute;inset:0;display:grid;place-items:center;color:var(--muted);font-family:var(--font-ui);letter-spacing:.2em;font-size:12px;z-index:4}
+/* floating island labels */
+.lbl{position:absolute;left:0;top:0;display:flex;align-items:baseline;gap:7px;white-space:nowrap;background:rgba(8,28,33,.86);border:1px solid var(--line-2);border-radius:999px;padding:6px 14px;pointer-events:auto;cursor:pointer;transition:border-color .18s,background .18s;will-change:transform;box-shadow:0 6px 20px rgba(0,0,0,.35)}
+.lbl::after{content:"";position:absolute;left:50%;bottom:-7px;width:1px;height:7px;background:var(--line-2);transform:translateX(-50%)}
+.lbl:hover,.lbl.active{border-color:var(--gold);background:rgba(18,48,54,.96)}
+.lbl .ln{font-family:var(--font-ui);font-size:11px;font-weight:700;color:var(--gold);letter-spacing:.06em}
+.lbl .lt{font-family:var(--font-cjk);font-weight:700;font-size:13px;color:var(--ink);line-height:1.1}
+.lbl.core{background:rgba(32,24,8,.86);border-color:var(--gold-dp)}
+.lbl.core .lt{color:var(--gold)}
+@media (max-width:620px){.lbl{display:none}}
+.panel{border:1px solid var(--line);border-radius:18px;background:var(--panel);padding:20px 20px 16px;position:sticky;top:max(16px,env(safe-area-inset-top,0px));max-height:calc(100vh - 40px);overflow:auto}
+.panel-eyebrow{font-family:var(--font-ui);font-size:11px;letter-spacing:.26em;text-transform:uppercase;color:var(--muted-2);margin-bottom:14px}
+.panel-head{display:flex;gap:14px;align-items:flex-start;margin-bottom:12px}
+.panel-num{font-family:var(--font-ui);font-weight:700;font-size:15px;color:var(--gold);border:1px solid var(--gold-dp);border-radius:9px;padding:6px 9px;line-height:1;flex:none;background:rgba(244,196,92,.07)}
+.panel-title{font-family:var(--font-cjk);font-weight:900;font-size:24px;margin:0;line-height:1.12;text-wrap:balance}
+.panel-sub{font-family:var(--font-ui);font-size:11px;letter-spacing:.18em;text-transform:uppercase;color:var(--teal);margin:5px 0 0}
+.panel-blurb{color:var(--muted);font-size:14px;margin:4px 0 16px}
+.panel-meta{display:flex;gap:16px;flex-wrap:wrap;font-family:var(--font-ui);font-size:12px;color:var(--muted-2);border-top:1px solid var(--line);border-bottom:1px solid var(--line);padding:11px 0;margin-bottom:16px;letter-spacing:.06em}
+.panel-meta b{color:var(--teal);font-weight:600;font-size:15px}
+.tnum{font-variant-numeric:tabular-nums}
+.course-list{display:flex;flex-direction:column;gap:8px}
+.ctitle{display:flex;gap:11px;align-items:center;border:1px solid var(--line);border-radius:12px;background:var(--panel2);padding:12px 14px;transition:border-color .2s,transform .2s}
+.ctitle:hover{border-color:var(--line-2);transform:translateX(2px)}
+.ctitle .idx{font-family:var(--font-ui);font-size:11px;font-weight:600;color:var(--gold);min-width:18px;font-variant-numeric:tabular-nums}
+.ctitle .ct{font-family:var(--font-cjk);font-weight:600;font-size:14.5px;color:var(--ink);line-height:1.4}
+.empty{text-align:center;padding:34px 16px;border:1px dashed var(--line-2);border-radius:14px;background:rgba(53,224,207,.03)}
+.empty-badge{display:inline-block;font-family:var(--font-ui);font-size:12px;letter-spacing:.14em;text-transform:uppercase;color:var(--gold);border:1px solid var(--gold-dp);border-radius:999px;padding:5px 14px;margin-bottom:12px}
+.empty p{color:var(--muted);font-size:13.5px;margin:0}
+.chips{display:grid;grid-template-columns:1fr 1fr;gap:9px}
+.chip-btn{text-align:left;border:1px solid var(--line);border-radius:12px;background:var(--panel2);padding:11px 12px;cursor:pointer;color:var(--ink);font-family:var(--font-cjk);transition:border-color .2s,transform .2s,background .2s;display:flex;flex-direction:column;gap:3px}
+.chip-btn:hover{border-color:var(--teal);transform:translateY(-2px);background:rgba(21,61,67,.7)}
+.chip-btn .cn{font-family:var(--font-ui);font-size:11px;color:var(--gold);letter-spacing:.06em}
+.chip-btn .ct{font-weight:700;font-size:14.5px}
+.chip-btn .cc{font-family:var(--font-ui);font-size:11px;color:var(--muted-2);letter-spacing:.04em}
+.panel-foot{margin:18px 0 2px;padding-top:13px;border-top:1px solid var(--line);font-size:11.5px;color:var(--muted-2);line-height:1.5}
+.back{display:inline-flex;align-items:center;gap:6px;cursor:pointer;background:none;border:none;color:var(--teal);font-family:var(--font-ui);font-size:12px;letter-spacing:.08em;padding:0;margin-bottom:14px}
+.back:hover{color:var(--gold)}
+footer{margin-top:30px;text-align:center;font-family:var(--font-ui);font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:var(--muted-2)}
+@media (max-width:860px){.stage{grid-template-columns:1fr;gap:16px}.panel{position:static;max-height:none}}
+</style>
+
+<div class="wrap">
+  <header>
+    <div class="eyebrow">Semiconductor City · 晶片之城</div>
+    <h1>半導體城市 <span class="chip">TSMC</span></h1>
+    <p class="lede">一座漂在海上的晶片城市。中央是 TSMC R&amp;D Center，六座島各有代表地標與一門半導體學問，小市民在街區與橋上穿梭。點一座島，走進它的課程。</p>
+  </header>
+  <div class="stage">
+    <div class="map-card">
+      <div class="map-tag">City Map / 城市地圖</div>
+      <canvas id="scene"></canvas>
+      <div id="labels"></div>
+      <div class="loading" id="loading">建構城市中…</div>
+      <div class="map-hint">拖曳旋轉 · 滾輪縮放 · <b>點島看課程</b></div>
+    </div>
+    <aside class="panel" id="panel" aria-live="polite"></aside>
+  </div>
+  <footer>Prototype v1 · 課程內容參考 TSMC 半導體雲端學院</footer>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script>
+/* ============ data ============ */
+const DISTRICTS = {
+  d1:{num:'01',name:'半導體應用',sub:'Applications',landmark:'智慧應用塔',
+      blurb:'晶片如何走進手錶、手機與雲端，撐起我們每天的智慧生活。',
+      courses:[{t:'無所不在的晶片半導體',len:'12:00',lv:1},{t:'常見五大晶片功能',len:'12:00',lv:1},{t:'晶片間訊號的傳送處理',len:'10:00',lv:2}]},
+  d2:{num:'02',name:'半導體產業',sub:'Industry',landmark:'產業鏈港口',
+      blurb:'從設計、製造到封裝測試，看台灣如何用一顆顆晶片連結全世界。',
+      courses:[{t:'全球晶片半導體重鎮',len:'10:00',lv:1},{t:'半導體產業鏈指南（上）',len:'05:05',lv:2},{t:'半導體產業鏈指南（下）',len:'08:05',lv:2}]},
+  d3:{num:'03',name:'半導體製程',sub:'Process',landmark:'晶圓製造廠',
+      blurb:'一片矽晶圓如何在無塵室裡，一層層蝕刻成數十億顆電晶體。',courses:[]},
+  d4:{num:'04',name:'元件物理',sub:'Device Physics',landmark:'電晶體研究院',
+      blurb:'電晶體與 p-n 接面——讓 0 與 1 得以開關的物理核心。',
+      courses:[{t:'電晶體概念與應用',len:'08:00',lv:2},{t:'半導體原理說明',len:'09:00',lv:1},{t:'解鎖半導體世界',len:'06:21',lv:1},{t:'p-n 接面的生命力（上）',len:'07:05',lv:2},{t:'p-n 接面的生命力（下）',len:'06:19',lv:2},{t:'點亮科技的電晶體（上）',len:'07:57',lv:3},{t:'點亮科技的電晶體（下）',len:'07:29',lv:3},{t:'電晶體的縮小術',len:'06:45',lv:3},{t:'飛馳的電荷精靈',len:'07:15',lv:3}]},
+  d5:{num:'05',name:'電子 & 電路',sub:'Circuits',landmark:'電路板廣場',
+      blurb:'從原子、電流到類比與數位訊號——電路運作的基本功。',
+      courses:[{t:'揭開電子的面紗',len:'05:04',lv:1},{t:'探索電流的奧秘',len:'07:26',lv:1},{t:'電子元件大解密',len:'06:11',lv:2},{t:'破解訊號的魔法',len:'05:51',lv:2}]},
+  d6:{num:'06',name:'半導體材料',sub:'Materials',landmark:'矽晶礦場',
+      blurb:'矽、導體與絕緣體——決定晶片效能的那層材料學問。',courses:[]},
+};
+
+/* ============ three.js setup ============ */
+const REDUCE=matchMedia('(prefers-reduced-motion: reduce)').matches;
+const R=5.4, TILE_R=4.7, TOP=0.8, DY=Math.sqrt(3)/2*R;
+const POS={core:{x:0,z:0},d1:{x:0,z:-2*DY},d2:{x:1.5*R,z:-DY},d3:{x:1.5*R,z:DY},d4:{x:0,z:2*DY},d5:{x:-1.5*R,z:DY},d6:{x:-1.5*R,z:-DY}};
+const COLteal=0x35e0cf, COLgold=0xf4c45c, COLgoldDp=0xd79a2e;
+
+const canvas=document.getElementById('scene');
+const renderer=new THREE.WebGLRenderer({canvas,antialias:true,alpha:true});
+renderer.setPixelRatio(Math.min(devicePixelRatio,2));
+const scene=new THREE.Scene();
+scene.fog=new THREE.Fog(0x227f88,170,600);
+const camera=new THREE.PerspectiveCamera(32,1,0.5,1400);  // perspective diorama: low angle so sky, mountains & clouds show
+const target=new THREE.Vector3(0,2.2,0);
+let az=-0.6, el=0.235, camRadius=78;
+function placeCamera(){camera.position.set(target.x+camRadius*Math.cos(el)*Math.sin(az),target.y+camRadius*Math.sin(el),target.z+camRadius*Math.cos(el)*Math.cos(az));camera.lookAt(target);}
+function resize(){const w=canvas.clientWidth,h=canvas.clientHeight;camera.aspect=w/h;camera.updateProjectionMatrix();renderer.setSize(w,h,false);}
+
+scene.add(new THREE.HemisphereLight(0xcdf2ea,0x0c3038,1.05));
+const sun=new THREE.DirectionalLight(0xffeccb,1.0); sun.position.set(16,26,12); scene.add(sun);
+const rim=new THREE.DirectionalLight(0x5fe0d2,0.45); rim.position.set(-16,10,-14); scene.add(rim);
+
+function mat(c,em,ei){return new THREE.MeshStandardMaterial({color:c,roughness:.82,metalness:.14,flatShading:true,emissive:em||0,emissiveIntensity:ei||0});}
+function box(w,h,d,c,x,y,z,em,ei){const m=new THREE.Mesh(new THREE.BoxGeometry(w,h,d),mat(c,em,ei));m.position.set(x,y,z);return m;}
+function cyl(rt,rb,h,c,x,y,z,em,ei,seg){const m=new THREE.Mesh(new THREE.CylinderGeometry(rt,rb,h,seg||16),mat(c,em,ei));m.position.set(x,y,z);return m;}
+function cone(r,h,c,x,y,z,em,ei,seg){const m=new THREE.Mesh(new THREE.ConeGeometry(r,h,seg||6),mat(c,em,ei));m.position.set(x,y,z);return m;}
+
+/* ---- facade textures (for supporting buildings) ---- */
+function texFrom(w,h,draw){const c=document.createElement('canvas');c.width=w;c.height=h;draw(c.getContext('2d'),w,h);const t=new THREE.CanvasTexture(c);t.anisotropy=4;return t;}
+function facadeTex(base,floor,glass,lit){return texFrom(64,64,(x,w,h)=>{x.fillStyle=base;x.fillRect(0,0,w,h);
+  for(let fy=0;fy<2;fy++){x.fillStyle=floor;x.fillRect(0,fy*32+28,w,4);
+    for(let fx=0;fx<2;fx++){x.fillStyle=Math.random()<lit?'#f4c45c':glass;x.fillRect(fx*32+5,fy*32+4,22,22);x.fillStyle='rgba(255,255,255,.06)';x.fillRect(fx*32+5,fy*32+4,22,3);}}});}
+const FACADES=[facadeTex('#123e45','#0c2c31','#1d5660',0.28),facadeTex('#15454e','#0e3238','#227f7c',0.30),facadeTex('#1b4e63','#113748','#2a6f8a',0.26),facadeTex('#184a46','#0e332f','#1f6f66',0.33)];
+function facadeMat(i){const t=FACADES[i%FACADES.length].clone();t.needsUpdate=true;t.wrapS=t.wrapT=THREE.RepeatWrapping;return new THREE.MeshStandardMaterial({map:t,emissiveMap:t,emissive:0xffffff,emissiveIntensity:.32,roughness:.7,metalness:.2});}
+function supportTower(g,cx,cz,w,h,fi){
+  g.add(box(w+0.2,0.24,w+0.2,0x0e3136,cx,TOP+0.12,cz));
+  const body=new THREE.Mesh(new THREE.BoxGeometry(w,h,w),facadeMat(fi));
+  const t=body.material.map,e=body.material.emissiveMap,rx=Math.max(1,Math.round(w)),ry=Math.max(1,Math.round(h*0.8));
+  t.repeat.set(rx,ry);e.repeat.set(rx,ry);body.position.set(cx,TOP+0.24+h/2,cz);g.add(body);
+  g.add(box(w+0.08,0.12,w+0.08,0x0b2b30,cx,TOP+0.24+h+0.05,cz));
+}
+function tree(g,x,z,s){s=s||1;g.add(cyl(0.08,0.1,0.4*s,0x6b4a2a,x,TOP+0.2*s,z,0,0,6));g.add(cone(0.34*s,0.7*s,0x3fae52,x,TOP+0.4*s+0.35*s,z,0,0,7));}
+
+/* ============ TSMC R&D Center (reference photo) ============ */
+function buildTSMC(g){
+  g.add(box(7.4,0.22,4.2,0x3fae52,0,TOP+0.11,0,0x1c5a33,.05));
+  g.add(box(2.0,0.04,2.6,0x8f9a96,-0.3,TOP+0.24,1.3));
+  const white=mat(0xeef1ee),grey=mat(0xcfd4d1);
+  const frontMat=new THREE.MeshStandardMaterial({map:texMullion,emissiveMap:texMullion,emissive:0x8fd0d6,emissiveIntensity:.18,roughness:.5,metalness:.25});
+  const hall=new THREE.Mesh(new THREE.BoxGeometry(4.3,1.7,2.0),[white,white,white,white,frontMat,white.clone()]);
+  hall.position.set(-0.2,TOP+0.22+0.85,0.1);g.add(hall);
+  const roofMats=[grey,grey,new THREE.MeshStandardMaterial({map:texRoofGrid,roughness:.6,metalness:.2}),grey,grey,grey];
+  const roof=new THREE.Mesh(new THREE.BoxGeometry(4.7,0.24,2.5),roofMats);roof.position.set(-0.2,TOP+0.22+1.75,0);roof.rotation.x=-0.07;g.add(roof);
+  g.add(box(0.8,2.3,2.1,0x9aa0a0,-2.45,TOP+0.22+1.15,0.05));
+  const logo=new THREE.Mesh(new THREE.PlaneGeometry(1.25,0.54),new THREE.MeshBasicMaterial({map:logoTex(),transparent:true}));logo.position.set(-1.7,TOP+0.22+1.15,1.12);g.add(logo);
+  for(let i=0;i<4;i++) g.add(box(1.7,0.16,2.0,0xb8bcbb,2.35,TOP+0.3+i*0.5,0));
+  for(const sx of [1.55,3.15]) for(const sz of [-0.9,0.9]) g.add(box(0.12,2.0,0.12,0xa7adab,sx,TOP+1.2,sz));
+  const tank=cyl(0.28,0.28,0.5,0xf2f4f1,-3.1,TOP+0.47,1.4,0,0,12);g.add(tank);
+  g.add(box(1.1,0.07,0.7,0x2f9fd0,-2.7,TOP+0.26,-1.3,0x1b6fa0,.25));
+  const bush=(x,z)=>{g.add(box(0.34,0.26,0.34,0x3a9e4c,x,TOP+0.35,z));g.add(box(0.12,0.1,0.12,COLgold,x+0.06,TOP+0.53,z-0.04,COLgold,.3));};
+  bush(-3.2,0.3);bush(-2.4,-0.4);bush(0.8,1.6);bush(3.2,1.5);bush(2.0,-1.6);
+  tree(g,-3.3,-0.6,0.9);tree(g,3.3,-1.6,0.9);
+  const rdpc=new THREE.Mesh(new THREE.PlaneGeometry(1.2,0.56),new THREE.MeshBasicMaterial({map:rdpcTex()}));rdpc.rotation.x=-Math.PI/2.2;rdpc.position.set(1.1,TOP+0.3,1.8);g.add(rdpc);
+}
+const texMullion=texFrom(256,128,(x,w,h)=>{x.fillStyle='#eef1ee';x.fillRect(0,0,w,h);for(let i=0;i<13;i++){x.fillStyle='#2f7f86';x.fillRect(6+i*19,10,11,h-20);x.fillStyle='rgba(255,255,255,.25)';x.fillRect(6+i*19,10,3,h-20);}});
+const texRoofGrid=texFrom(256,80,(x,w,h)=>{x.fillStyle='#e6e9e6';x.fillRect(0,0,w,h);for(let r=0;r<2;r++)for(let c=0;c<12;c++){x.fillStyle='#8f9795';x.fillRect(10+c*20,12+r*34,13,22);}});
+function logoTex(){return texFrom(256,110,(x,w,h)=>{x.clearRect(0,0,w,h);x.fillStyle='#d9201f';x.font='bold 60px Arial';x.fillText('tsmc',8,58);x.fillStyle='#444';x.font='bold 26px Arial';x.fillText('R&D Center',10,92);});}
+function rdpcTex(){return texFrom(256,120,(x,w,h)=>{x.fillStyle='#c8161a';x.fillRect(0,0,w,h);x.fillStyle='#fff';x.font='bold 70px Arial';x.textAlign='center';x.fillText('RDPC',w/2,82);});}
+
+/* ============ district landmarks ============ */
+function plaza(g,c){g.add(box(5.6,0.16,5.0,c||0x123f46,0,TOP+0.08,0,0x0a3038,.05));}
+
+// 01 應用：巨型智慧型手機塔 + app 方塊
+function lm_d1(g){
+  plaza(g,0x14343c);
+  g.add(box(1.7,3.3,0.5,0x12303a,0,TOP+0.08+1.65,0));                               // phone body
+  g.add(box(1.35,2.7,0.1,0x0a1d24,0,TOP+0.08+1.7,0.26,COLteal,.55));                // glowing screen
+  g.add(box(0.5,0.1,0.06,0x0a1d24,0,TOP+0.08+3.0,0.27));                            // speaker
+  g.add(cyl(0.1,0.1,0.05,0x0a1d24,0,TOP+0.08+0.45,0.27,0,0,12));                    // home btn
+  // app cubes w/ glowing icons
+  const ac=[[-1.9,1.2,0xf07a5a],[1.9,1.1,0x7bbcf0],[1.6,-1.6,0xf4c45c]];
+  ac.forEach((a,i)=>{g.add(box(0.9,1.0,0.9,0x15424a,a[0],TOP+0.08+0.5,a[1]));g.add(box(0.5,0.5,0.04,a[2],a[0],TOP+0.08+0.7,a[1]+0.47,a[2],.5));});
+  supportTower(g,-1.9,-1.7,0.9,1.4,1);tree(g,2.6,2.0,0.9);tree(g,-2.7,-0.3,0.8);
+}
+// 02 產業：貨櫃港 + 門式起重機 + 船
+function lm_d2(g){
+  g.add(box(5.2,0.14,2.4,0x6a7a7d,0,TOP+0.07,0.4));                                 // dock
+  // gantry crane
+  for(const x of [-1.6,1.6]) for(const z of [-0.4,1.1]) g.add(box(0.14,2.4,0.14,0xd9a93a,x,TOP+0.07+1.2,z));
+  g.add(box(3.6,0.22,0.22,0xf0c24a,0,TOP+0.07+2.4,-0.4));
+  g.add(box(3.6,0.22,0.22,0xf0c24a,0,TOP+0.07+2.4,1.1));
+  g.add(box(2.4,0.18,0.18,0xf0c24a,1.4,TOP+0.07+2.4,0.35));                          // boom out to sea
+  g.add(box(0.5,0.5,0.5,0x2a2f33,1.9,TOP+0.07+2.0,0.35));                            // trolley
+  // container stacks
+  const cc=[0xd04a3a,0x3a7fd0,0x3aae7a,0xd0a53a,0xc85a8a];let i=0;
+  for(const cx of [-1.4,-0.4,0.6]) for(let ly=0;ly<2;ly++){g.add(box(0.9,0.45,0.95,cc[(i++)%cc.length],cx,TOP+0.14+0.25+ly*0.47,1.1));}
+  // ship on the water side
+  const ship=new THREE.Group();ship.add(box(2.4,0.4,0.9,0xb23a3a,0,0,0));ship.add(box(0.9,0.5,0.6,0xe9eef0,-0.4,0.42,0));ship.add(box(0.1,0.7,0.1,0xcfd4d1,0.5,0.5,0));
+  ship.position.set(0,TOP-0.15,-2.9);g.add(ship);
+  tree(g,-2.6,-1.1,0.8);tree(g,2.7,-1.4,0.8);
+}
+// 03 製程：晶圓廠 + 直立晶圓碑 + 煙囪管線
+function lm_d3(g){
+  plaza(g,0x123f46);
+  g.add(box(3.0,1.4,2.0,0xdfe3e0,-0.4,TOP+0.08+0.7,-0.2));                           // fab hall
+  g.add(box(2.6,0.14,1.7,0x9fd6da,-0.4,TOP+0.08+0.62,-0.2,0x6fc0c6,.25));            // window band (slab)
+  for(const px of [-1.2,-0.4,0.4]) {const p=cyl(0.14,0.14,2.0,0xb8bcbb,px,TOP+0.08+1.4,-0.2,0,0,10);p.rotation.z=Math.PI/2;g.add(p);} // roof pipes
+  g.add(cyl(0.2,0.24,1.1,0xc3c7c4,0.7,TOP+0.08+1.95,-0.9,0,0,10));                   // chimney
+  g.add(cyl(0.2,0.24,1.1,0xc3c7c4,0.95,TOP+0.08+1.95,0.2,0,0,10));
+  // standing silicon wafer monument
+  g.add(box(0.5,0.6,0.5,0x2a2f33,1.9,TOP+0.08+0.3,1.5));
+  const wafer=cyl(1.15,1.15,0.09,0x8a7fd0,1.9,TOP+0.08+1.55,1.5,0x4a3f9a,.3,36);wafer.rotation.x=Math.PI/2;wafer.rotation.z=0.2;g.add(wafer);
+  const notch=cyl(1.15,1.15,0.1,0x0b1f26,1.9,TOP+0.08+1.55,1.5,0,0,36);notch.visible=false;g.add(notch);
+  tree(g,-2.6,1.6,0.8);tree(g,2.8,-1.6,0.8);
+}
+// 04 元件物理：玻璃研究圓頂 + 電晶體紀念碑
+function lm_d4(g){
+  plaza(g,0x123f46);
+  g.add(cyl(1.3,1.5,0.5,0xcfd4d1,-0.8,TOP+0.08+0.25,-0.3,0,0,24));                   // dome base
+  const dome=new THREE.Mesh(new THREE.SphereGeometry(1.3,24,14,0,Math.PI*2,0,Math.PI/2),new THREE.MeshStandardMaterial({color:0x2a7f86,roughness:.25,metalness:.35,transparent:true,opacity:.92,emissive:0x1b5f66,emissiveIntensity:.25,flatShading:true}));
+  dome.position.set(-0.8,TOP+0.08+0.5,-0.3);g.add(dome);
+  // transistor monument (MOSFET): base + S/G/D pillars + gate bar
+  g.add(box(1.8,0.22,0.9,0x1b2a30,1.6,TOP+0.08+0.11,1.3));
+  g.add(box(0.2,1.0,0.3,0xbfc4c2,1.1,TOP+0.08+0.6,1.3));                             // source
+  g.add(box(0.2,1.0,0.3,0xbfc4c2,2.1,TOP+0.08+0.6,1.3));                             // drain
+  g.add(box(0.24,1.35,0.3,COLgold,1.6,TOP+0.08+0.78,1.3,COLgold,.35));              // gate
+  g.add(box(1.3,0.16,0.18,COLgold,1.6,TOP+0.08+1.45,1.3,COLgold,.35));              // gate bar
+  tree(g,-2.7,1.6,0.8);tree(g,2.6,-1.5,0.8);supportTower(g,-2.4,-1.8,0.9,1.3,2);
+}
+// 05 電子&電路：PCB 廣場 + 巨型 IC 晶片 + 被動元件
+function lm_d5(g){
+  g.add(box(5.2,0.12,4.6,0x14633f,0,TOP+0.06,0,0x0a3a24,.05));                       // green PCB
+  // copper traces
+  for(const t of [[-1.8,0,2.4,0.1],[0,-1.4,0.1,2.0],[1.3,0.6,1.8,0.1],[0.2,1.7,2.6,0.1]]) g.add(box(t[2],0.03,t[3],COLgold,t[0],TOP+0.13,t[1],COLgold,.25));
+  // IC chip building
+  g.add(box(1.9,0.9,1.5,0x111518,0,TOP+0.12+0.45,0));
+  g.add(cyl(0.12,0.12,0.04,0xd9d9d9,-0.6,TOP+0.12+0.92,-0.45,0,0,10));               // pin-1 dot
+  for(const side of [-1,1]) for(let i=0;i<5;i++) g.add(box(0.07,0.06,0.16,COLgold,side*1.03,TOP+0.12+0.18,-0.6+i*0.3,COLgold,.3));
+  // resistor (with bands)
+  const res=new THREE.Group();res.add(cyl(0.22,0.22,1.0,0xd8c9a0,0,0,0,0,0,14));
+  [[-0.25,0x8a3a2a],[-0.05,0xd04a3a],[0.15,0xd0a53a]].forEach(b=>res.add(cyl(0.235,0.235,0.08,b[1],0,b[0],0,0,0,14)));
+  res.add(cyl(0.04,0.04,1.6,0xaaaaaa,0,0,0,0,0,8));res.rotation.z=Math.PI/2;res.position.set(-1.7,TOP+0.12+0.22,1.4);g.add(res);
+  // capacitor
+  g.add(cyl(0.3,0.3,0.8,0x2a5fd0,1.7,TOP+0.12+0.4,1.4,0x173a8a,.2,16));
+  tree(g,2.7,-1.8,0.8);tree(g,-2.7,-1.7,0.8);
+}
+// 06 材料：矽晶礦場 + 單晶矽柱 + 晶體
+function lm_d6(g){
+  // terraced quarry
+  g.add(box(5.0,0.2,4.4,0x3a4a50,0,TOP+0.1,0));
+  g.add(box(3.6,0.25,3.2,0x30414a,0,TOP+0.28,0));
+  g.add(box(2.2,0.25,2.0,0x273a42,0,TOP+0.5,0));
+  // monocrystalline silicon ingot on cradle
+  g.add(box(0.5,0.35,0.5,0x1b2a30,-1.1,TOP+0.62+0.17,0.2));
+  g.add(box(0.5,0.35,0.5,0x1b2a30,1.1,TOP+0.62+0.17,0.2));
+  const ingot=cyl(0.55,0.55,2.6,0x9aa4a8,0,TOP+0.62+0.55,0.2,0x3a4e55,.15,24);ingot.rotation.z=Math.PI/2;g.add(ingot);
+  const tip=cone(0.55,0.7,0xb3bdbf,1.75,TOP+0.62+0.55,0.2,0,0,24);tip.rotation.z=-Math.PI/2;g.add(tip);
+  // raw silicon crystals poking up
+  const cr=[[-1.6,-1.4,0x6fd0c6,1.3],[1.7,-1.2,0x8a7fd0,1.0],[-0.4,1.7,0x6fd0c6,0.9],[1.2,1.6,0xa0e0d8,0.8]];
+  cr.forEach(c=>{const k=cone(0.32*c[3],1.2*c[3],c[2],c[0],TOP+0.6+0.6*c[3],c[1],c[2],.3,5);k.rotation.z=(Math.random()-0.5)*0.4;g.add(k);});
+  tree(g,-2.7,1.7,0.8);tree(g,2.7,1.6,0.8);
+}
+const LANDMARKS={d1:lm_d1,d2:lm_d2,d3:lm_d3,d4:lm_d4,d5:lm_d5,d6:lm_d6};
+
+/* ---- sky dome (gradient) ---- */
+const skyTex=texFrom(512,512,(x,w,h)=>{
+  const g=x.createLinearGradient(0,0,0,h);
+  g.addColorStop(0,'#06202b');g.addColorStop(.40,'#0e4f59');g.addColorStop(.56,'#1b818d');g.addColorStop(.66,'#36a0a8');g.addColorStop(.74,'#2a8f98');g.addColorStop(.86,'#1d6b74');g.addColorStop(1,'#124851');
+  x.fillStyle=g;x.fillRect(0,0,w,h);
+  // soft painted clouds near the horizon band
+  for(let i=0;i<16;i++){
+    const cx=Math.random()*w, cy=h*(0.34+Math.random()*0.18), rw=34+Math.random()*64, rh=rw*(0.32+Math.random()*0.12);
+    const rg=x.createRadialGradient(cx,cy,0,cx,cy,rw);
+    rg.addColorStop(0,'rgba(233,245,244,0.5)');rg.addColorStop(.6,'rgba(220,238,238,0.22)');rg.addColorStop(1,'rgba(220,238,238,0)');
+    x.save();x.translate(cx,cy);x.scale(1,rh/rw);x.fillStyle=rg;x.beginPath();x.arc(0,0,rw,0,Math.PI*2);x.fill();x.restore();
+  }
+});
+skyTex.wrapS=THREE.RepeatWrapping;
+const sky=new THREE.Mesh(new THREE.SphereGeometry(680,40,24),new THREE.MeshBasicMaterial({map:skyTex,side:THREE.BackSide,fog:false}));
+scene.add(sky);
+
+/* ---- sea (bright water, reaching the horizon) ---- */
+const sea=new THREE.Mesh(new THREE.CircleGeometry(640,96),new THREE.MeshStandardMaterial({color:0x10717c,roughness:.28,metalness:.42,emissive:0x0a4a52,emissiveIntensity:.1}));
+sea.rotation.x=-Math.PI/2;sea.position.y=-0.3;scene.add(sea);
+const seaInner=new THREE.Mesh(new THREE.CircleGeometry(26,64),new THREE.MeshStandardMaterial({color:0x1b8a93,roughness:.25,metalness:.45,transparent:true,opacity:.55}));
+seaInner.rotation.x=-Math.PI/2;seaInner.position.y=-0.22;scene.add(seaInner);
+
+/* ---- real 3D mountain ranges ringing the city (beyond camera orbit, so never block) ---- */
+function bigMountain(x,z,s){
+  const g=new THREE.Group();g.position.set(x,-0.4,z);g.rotation.y=Math.random()*Math.PI*2;
+  const peaks=2+((Math.random()*3)|0);
+  for(let i=0;i<peaks;i++){
+    const hh=(13+Math.random()*15)*s, rr=(11+Math.random()*8)*s;
+    const px=(Math.random()-0.5)*22*s, pz=(Math.random()-0.5)*15*s;
+    const tint=0x14525d+((Math.random()*0x050505)|0);
+    g.add(cone(rr,hh,tint,px,hh/2,pz,0,0,5));
+    if(hh>22*s) g.add(cone(rr*0.32,hh*0.2,0xd3e6e6,px,hh-hh*0.1,pz,0,0,5)); // snow cap
+  }
+  scene.add(g);
+}
+const RINGN=48;
+for(let i=0;i<RINGN;i++){const a=i/RINGN*Math.PI*2+Math.random()*0.07; const rad=205+Math.random()*165; bigMountain(Math.cos(a)*rad,Math.sin(a)*rad,0.78+Math.random()*0.6);}
+
+/* ---- a few low islets in the mid-water (depth) ---- */
+function islet(x,z,s){const g=new THREE.Group();g.position.set(x,-0.3,z);
+  g.add(cyl(2.2*s,2.9*s,0.8*s,0x0f515a,0,0.4*s,0,0,0,7));
+  g.add(cone(1.7*s,3.0*s,0x0e4d57,0,1.5*s,0,0,0,6));
+  g.add(cone(1.0*s,1.8*s,0x116069,1.1*s,1.0*s,0.6*s,0,0,6));
+  scene.add(g);}
+[[100,-50,1.7],[122,60,1.3],[-112,70,1.6],[-134,-44,1.3],[52,134,1.5],[-60,-126,1.4],[146,12,1.2]].forEach(s=>islet(s[0],s[1],s[2]));
+
+/* ---- low-poly drifting clouds ---- */
+const clouds=new THREE.Group();scene.add(clouds);
+function makeCloud(x,y,z,s){
+  const g=new THREE.Group();g.position.set(x,y,z);
+  const m=new THREE.MeshStandardMaterial({color:0xecf4f3,roughness:1,metalness:0,flatShading:true,transparent:true,opacity:.96,emissive:0x1b6a73,emissiveIntensity:.06});
+  [[0,0,0,1],[1.2,-.1,.2,.78],[-1.2,-.05,-.2,.72],[.5,.26,-.3,.62],[-.55,.22,.3,.56],[.1,-.2,.1,.68]].forEach(p=>{
+    const sp=new THREE.Mesh(new THREE.SphereGeometry(1,10,8),m);sp.position.set(p[0]*s,p[1]*s,p[2]*s);sp.scale.set(p[3]*s,p[3]*s*0.65,p[3]*s);g.add(sp);});
+  clouds.add(g);
+}
+[[-170,66,-96,8],[140,78,-128,8.5],[-104,56,190,7.5],[196,82,82,8.5],[46,92,-210,9],[-210,64,42,7.5],[220,52,-34,7],[-56,76,200,7.5]].forEach(c=>makeCloud(c[0],c[1],c[2],c[3]));
+
+/* ---- tiles ---- */
+const hexGeo=new THREE.CylinderGeometry(TILE_R,TILE_R*0.88,1.6,6);
+const tileMeshes=[];
+const world=new THREE.Group();scene.add(world);
+Object.keys(POS).forEach(id=>{
+  const p=POS[id],g=new THREE.Group();g.position.set(p.x,0,p.z);
+  const isCore=id==='core';
+  const tile=new THREE.Mesh(hexGeo,new THREE.MeshStandardMaterial({color:isCore?0x2f8f55:0x11525a,roughness:.92,metalness:.1,flatShading:true,emissive:isCore?0x1c5a33:0x0a3a40,emissiveIntensity:.06}));
+  tile.userData.id=id;tileMeshes.push(tile);g.add(tile);
+  g.add(new THREE.Mesh(new THREE.CylinderGeometry(TILE_R*0.88,TILE_R*0.58,1.6,6),mat(0x0c343a)).translateY(-1.5));
+  if(isCore) buildTSMC(g); else LANDMARKS[id](g);
+  world.add(g);
+});
+
+/* ---- bridges ---- */
+const bridges=[];
+Object.keys(DISTRICTS).forEach(id=>{const p=POS[id],len=Math.hypot(p.x,p.z),dx=p.x/len,dz=p.z/len;
+  const inner=TILE_R*0.86,outer=len-TILE_R*0.86,blen=outer-inner,mid=(outer+inner)/2;
+  const b=box(blen,0.26,1.5,0x0f4349,dx*mid,TOP-0.1,dz*mid,0x0a3a40,.05);b.rotation.y=Math.atan2(-dz,dx);world.add(b);
+  for(const off of [-0.7,0.7]){const rl=box(blen,0.12,0.06,0x1b6b71,dx*mid-dz*off,TOP+0.05,dz*mid+dx*off);rl.rotation.y=Math.atan2(-dz,dx);world.add(rl);}
+  bridges.push({id,dx,dz,inner,outer});});
+
+/* ---- citizens ---- */
+const SKIN=[0xf1c9a5,0xe8b48c,0xd79a76,0xf4d6b8],CLOTHES=[0xf07a5a,0xf4c45c,0x4fd6c6,0xe8efe9,0xef8fb0,0x7bbcf0,0xb79bf0,0x5fae8f];
+const people=[];
+function limb(w,h,dep,c){const grp=new THREE.Group();grp.add(box(w,h,dep,c,0,-h/2,0));return grp;}
+function makePerson(){
+  const c=CLOTHES[(Math.random()*CLOTHES.length)|0],sk=SKIN[(Math.random()*SKIN.length)|0];
+  const g=new THREE.Group();
+  const legL=limb(0.13,0.36,0.15,0x2b3a44);legL.position.set(0.09,0.38,0);g.add(legL);
+  const legR=limb(0.13,0.36,0.15,0x2b3a44);legR.position.set(-0.09,0.38,0);g.add(legR);
+  g.add(box(0.32,0.42,0.22,c,0,0.59,0));g.add(box(0.34,0.1,0.24,c,0,0.4,0));
+  const armL=limb(0.09,0.36,0.11,c);armL.position.set(0.2,0.76,0);g.add(armL);
+  const armR=limb(0.09,0.36,0.11,c);armR.position.set(-0.2,0.76,0);g.add(armR);
+  g.add(new THREE.Mesh(new THREE.SphereGeometry(0.15,12,10),mat(sk)).translateY(0.94));
+  g.add(box(0.32,0.12,0.33,CLOTHES[(Math.random()*CLOTHES.length)|0],0,1.03,0));
+  g.scale.setScalar(0.9);world.add(g);
+  return {g,legL,legR,armL,armR,ph:Math.random()*6};
+}
+function tilePoint(p){const a=Math.random()*Math.PI*2,r=TILE_R*(0.45+Math.random()*0.2);return {x:p.x+Math.cos(a)*r,z:p.z+Math.sin(a)*r};}
+Object.keys(POS).forEach(id=>{const p=POS[id],n=id==='core'?3:2;for(let i=0;i<n;i++){const P=makePerson();const s=tilePoint(p);P.g.position.set(s.x,TOP,s.z);P.mode='tile';P.p=p;P.tgt=tilePoint(p);P.spd=0.55+Math.random()*0.5;people.push(P);}});
+bridges.forEach(b=>{const P=makePerson();P.g.position.set(b.dx*b.inner,TOP,b.dz*b.inner);P.mode='bridge';P.b=b;P.t=Math.random();P.dir=Math.random()>.5?1:-1;P.spd=0.1+Math.random()*0.05;people.push(P);});
+
+/* ---- data particles ---- */
+const particles=[];const pGeo=new THREE.SphereGeometry(0.12,8,8);
+bridges.forEach(b=>{for(let i=0;i<2;i++){const m=new THREE.Mesh(pGeo,mat(COLgold,COLgold,.95));world.add(m);particles.push({m,b,t:Math.random()});}});
+
+/* ============ floating labels ============ */
+const labelsEl=document.getElementById('labels');
+const labelData=[];
+function courseLines(d){
+  if(!d.courses.length) return '<div class="soon">課程準備中</div>';
+  const show=d.courses.slice(0,2).map(c=>`<li>${c.t}</li>`).join('');
+  const more=d.courses.length>2?`<div class="more">＋${d.courses.length-2} 門課程</div>`:'';
+  return `<ul>${show}</ul>${more}`;
+}
+Object.keys(DISTRICTS).forEach(id=>{
+  const d=DISTRICTS[id],el=document.createElement('div');el.className='lbl';el.dataset.id=id;
+  el.innerHTML=`<span class="ln">${d.num}</span><span class="lt">${d.name}</span>`;
+  el.addEventListener('click',()=>go(id));labelsEl.appendChild(el);
+  labelData.push({id,el,anchor:new THREE.Vector3(POS[id].x*1.1,3.0,POS[id].z*1.1)});
+});
+// core label
+(()=>{const el=document.createElement('div');el.className='lbl core';el.dataset.id='core';
+  el.innerHTML=`<span class="ln">★</span><span class="lt">TSMC R&D Center</span>`;
+  el.addEventListener('click',()=>go('core'));labelsEl.appendChild(el);
+  labelData.push({id:'core',el,anchor:new THREE.Vector3(0,4.4,0)});})();
+const _v=new THREE.Vector3();
+function updateLabels(){
+  const w=canvas.clientWidth,h=canvas.clientHeight;
+  for(const L of labelData){
+    _v.copy(L.anchor).project(camera);
+    const x=(_v.x*.5+.5)*w,y=(-_v.y*.5+.5)*h;
+    L.el.style.transform=`translate(${x}px,${y}px) translate(-50%,-108%)`;
+    L.el.classList.toggle('active',L.id===activeId);
+  }
+}
+
+/* ============ interaction ============ */
+const ray=new THREE.Raycaster(),pointer=new THREE.Vector2();let hovered=null,activeId=null;
+function setPointer(e){const r=canvas.getBoundingClientRect();pointer.x=((e.clientX-r.left)/r.width)*2-1;pointer.y=-((e.clientY-r.top)/r.height)*2+1;}
+function pick(){ray.setFromCamera(pointer,camera);const hit=ray.intersectObjects(tileMeshes,false);return hit[0]?hit[0].object.userData.id:null;}
+function refreshHighlight(){tileMeshes.forEach(t=>{const id=t.userData.id,on=id===activeId,hov=id===hovered,core=id==='core';
+  t.material.emissiveIntensity=on?.4:hov?.26:(core?.08:.06);t.material.emissive.setHex(on||hov?(core?0x2f8f55:COLteal):(core?0x1c5a33:0x0a3a40));});}
+let dragging=false,moved=0,lastX=0,lastY=0,downT=0;
+canvas.addEventListener('pointerdown',e=>{dragging=true;moved=0;lastX=e.clientX;lastY=e.clientY;downT=Date.now();canvas.classList.add('grabbing');canvas.setPointerCapture(e.pointerId);});
+canvas.addEventListener('pointermove',e=>{if(dragging){const dx=e.clientX-lastX,dy=e.clientY-lastY;moved+=Math.abs(dx)+Math.abs(dy);az-=dx*0.006;el=Math.max(0.14,Math.min(1.05,el-dy*0.004));lastX=e.clientX;lastY=e.clientY;placeCamera();}else{setPointer(e);const id=pick();if(id!==hovered){hovered=id;canvas.classList.toggle('hot',!!id);refreshHighlight();}}});
+function endDrag(e){dragging=false;canvas.classList.remove('grabbing');if(moved<6&&Date.now()-downT<400){setPointer(e);const id=pick();if(id)go(id);}}
+canvas.addEventListener('pointerup',endDrag);
+canvas.addEventListener('pointercancel',()=>{dragging=false;canvas.classList.remove('grabbing');});
+canvas.addEventListener('wheel',e=>{e.preventDefault();camRadius=Math.max(26,Math.min(130,camRadius+Math.sign(e.deltaY)*camRadius*0.1));placeCamera();},{passive:false});
+
+/* ============ animation ============ */
+let t0=performance.now();
+function frame(now){
+  const dt=Math.min(0.05,(now-t0)/1000);t0=now;
+  if(!REDUCE){
+    if(!dragging) az+=0.04*dt;
+    for(const q of people){
+      let vx=0,vz=0;
+      if(q.mode==='tile'){const dx=q.tgt.x-q.g.position.x,dz=q.tgt.z-q.g.position.z,d=Math.hypot(dx,dz);
+        if(d<0.15){q.tgt=tilePoint(q.p);}else{vx=dx/d*q.spd;vz=dz/d*q.spd;q.g.position.x+=vx*dt;q.g.position.z+=vz*dt;}}
+      else{q.t+=q.dir*q.spd*dt;if(q.t>1){q.t=1;q.dir=-1;}if(q.t<0){q.t=0;q.dir=1;}const r=q.b.inner+(q.b.outer-q.b.inner)*q.t;q.g.position.x=q.b.dx*r;q.g.position.z=q.b.dz*r;vx=q.b.dx*q.dir;vz=q.b.dz*q.dir;}
+      if(vx||vz)q.g.rotation.y=Math.atan2(vx,vz);
+      const sw=Math.sin(now/1000*8+q.ph)*0.5;
+      q.legL.rotation.x=sw;q.legR.rotation.x=-sw;q.armL.rotation.x=-sw*0.8;q.armR.rotation.x=sw*0.8;
+      q.g.position.y=TOP+Math.abs(Math.sin(now/1000*8+q.ph))*0.04;
+    }
+    for(const p of particles){p.t-=0.18*dt;if(p.t<0)p.t=1;const r=p.b.inner+(p.b.outer-p.b.inner)*p.t;p.m.position.set(p.b.dx*r,TOP+0.55,p.b.dz*r);}
+    seaInner.material.opacity=0.5+Math.sin(now/1400)*0.12;
+    clouds.rotation.y+=0.006*dt;clouds.position.y=Math.sin(now/3000)*0.6;
+  }
+  placeCamera();renderer.render(scene,camera);updateLabels();requestAnimationFrame(frame);
+}
+
+/* ============ panel ============ */
+const panel=document.getElementById('panel');
+const totalCourses=Object.values(DISTRICTS).reduce((n,d)=>n+d.courses.length,0);
+function dots(lv){return '<span class="dot">'+'●'.repeat(lv)+'</span>'+'○'.repeat(3-lv)}
+function renderOverview(){
+  const chips=Object.keys(DISTRICTS).map(id=>{const d=DISTRICTS[id],n=d.courses.length;return `<button class="chip-btn" data-id="${id}"><span class="cn">${d.num}</span><span class="ct">${d.name}</span><span class="cc">${n?n+' 門課程':'課程準備中'}</span></button>`;}).join('');
+  panel.innerHTML=`<div class="panel-eyebrow">City Overview / 城市總覽</div>
+    <div class="panel-head"><span class="panel-num">★</span><div><h2 class="panel-title">TSMC R&amp;D Center</h2><p class="panel-sub">The Core</p></div></div>
+    <p class="panel-blurb">所有區塊的電流最終都流回這裡。核心研發中心把六大領域的知識整合成一顆顆真實的晶片，是這座城市運轉的心臟。</p>
+    <div class="panel-meta"><span><b class="tnum">6</b> 個區塊</span><span><b class="tnum">${totalCourses}</b> 門課程</span><span><b class="tnum">2</b> 區建置中</span></div>
+    <div class="chips">${chips}</div>
+    <p class="panel-foot">原型版 v1：拖曳可旋轉城市、滾輪縮放，點任一座島、浮動標籤或下方卡片進入該區塊。課程內容取自 TSMC 半導體雲端學院，實際影片連結尚未接上。</p>`;
+  activeId=null;refreshHighlight();
+}
+function renderDistrict(id){const d=DISTRICTS[id];let body;
+  if(d.courses.length){body='<div class="course-list">'+d.courses.map((c,i)=>`<div class="ctitle"><span class="idx">${String(i+1).padStart(2,'0')}</span><span class="ct">${c.t}</span></div>`).join('')+'</div>';}
+  else{body=`<div class="empty"><div class="empty-badge">課程準備中</div><p>${d.name}的課程正在建置，敬請期待。</p></div>`;}
+  panel.innerHTML=`<button class="back" data-back="1">‹ 回城市總覽</button>
+    <div class="panel-eyebrow">District ${d.num} / ${d.sub}</div>
+    <div class="panel-head"><span class="panel-num">${d.num}</span><div><h2 class="panel-title">${d.name}</h2><p class="panel-sub">${d.landmark}</p></div></div>
+    <p class="panel-blurb">${d.blurb}</p>
+    <div class="panel-meta"><span><b class="tnum">${d.courses.length||'—'}</b> 門課程</span><span>${d.courses.length?'可開始學習':'建置中'}</span></div>
+    ${body}<p class="panel-foot">原型版 v1：課程卡片為示意，點擊尚未連到實際影片。</p>`;
+  activeId=id;refreshHighlight();
+}
+function go(id){if(!id||id==='core'){renderOverview()}else{renderDistrict(id)}}
+panel.addEventListener('click',e=>{if(e.target.closest('[data-back]')){go('core');return}const c=e.target.closest('.chip-btn');if(c)go(c.dataset.id);});
+
+/* boot */
+addEventListener('resize',resize);
+resize();placeCamera();renderOverview();
+document.getElementById('loading').remove();
+requestAnimationFrame(frame);
+</script>
